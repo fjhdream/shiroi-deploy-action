@@ -70,7 +70,8 @@ jobs:
     name: Build artifact
     runs-on: ubuntu-latest
     needs: check
-    if: ${{needs.check.outputs.canceled != 'true'}}
+    # 移除条件检查
+    # if: ${{needs.check.outputs.canceled != 'true'}}
 
     strategy:
       matrix:
@@ -95,7 +96,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
       - name: Install dependencies
         run: pnpm install
       - uses: actions/cache@v4
@@ -161,8 +162,8 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          source: 'release.zip'
-          target: '/tmp/shiro'
+          source: "release.zip"
+          target: "/tmp/shiro"
 
       - name: Exec deploy script with SSH
         uses: appleboy/ssh-action@master
