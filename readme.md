@@ -20,6 +20,7 @@ Shiroi 是 [Shiro](https://github.com/Innei/Shiro) 的闭源开发版本。
 
 关于 sharp 的安装，你可以使用
 
+
 ```sh
 npm i -g sharp
 ```
