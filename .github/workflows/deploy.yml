@@ -95,7 +95,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
       - uses: jongwooo/next-cache@v1
       - name: Install dependencies
         run: pnpm install
@@ -145,6 +145,7 @@ jobs:
         run: mv assets/release.zip release.zip
 
       - name: copy file via ssh password-aliyun
+        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST_ALIYUN }}
@@ -152,10 +153,11 @@ jobs:
           # password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          source: 'release.zip'
-          target: '/tmp/shiro'
-    
+          source: "release.zip"
+          target: "/tmp/shiro"
+
       - name: Exec deploy script with SSH-aliyun
+        continue-on-error: true
         uses: appleboy/ssh-action@master
 
         with:
@@ -195,6 +197,7 @@ jobs:
             echo "Deployed successfully"
 
       - name: copy file via ssh password
+        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
@@ -202,10 +205,11 @@ jobs:
           # password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          source: 'release.zip'
-          target: '/tmp/shiro'
-    
+          source: "release.zip"
+          target: "/tmp/shiro"
+
       - name: Exec deploy script with SSH
+        continue-on-error: true
         uses: appleboy/ssh-action@master
 
         with:
@@ -222,7 +226,7 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             export PATH=$PATH:/usr/local/bin
-           
+
             basedir=$HOME/shiro
             workdir=$basedir/${{ github.run_number }}
             mkdir -p $workdir
@@ -249,7 +253,6 @@ jobs:
             rm $workdir/release.zip
             pm2 save
             echo "Deployed successfully"
-
 
       - name: After deploy script
         run: |
