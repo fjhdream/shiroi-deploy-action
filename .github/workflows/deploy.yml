@@ -166,16 +166,29 @@ jobs:
       - name: Move assets to root
         run: mv assets/release.zip release.zip
 
+      - name: Prepare standalone PM2 config
+        run: cp pm2/ecosystem.config.js ecosystem.config.js
+
       - name: copy file via ssh password-aliyun
         continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST_ALIYUN }}
           username: ${{ secrets.USER }}
-          # password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           source: "release.zip"
+          target: "/tmp/yohaku"
+
+      - name: copy PM2 config via ssh-aliyun
+        continue-on-error: true
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_ALIYUN }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          source: "ecosystem.config.js"
           target: "/tmp/yohaku"
 
       - name: Exec deploy script with SSH-aliyun
@@ -183,7 +196,7 @@ jobs:
         uses: appleboy/ssh-action@master
 
         with:
-          command_timeout: 5m
+          command_timeout: 15m
           host: ${{ secrets.HOST_ALIYUN }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.KEY }}
@@ -196,30 +209,26 @@ jobs:
             mkdir -p $workdir
             mkdir -p $basedir/.cache
             mv /tmp/yohaku/release.zip $workdir/release.zip
-            rm -r /tmp/yohaku
+            install -m 644 /tmp/yohaku/ecosystem.config.js $basedir/ecosystem.config.js
             cd $workdir
             unzip -qq -o $workdir/release.zip
-            rm -rf $workdir/standalone/.env
-            ln -s $HOME/yohaku/.env $workdir/standalone/.env
+            rm -r /tmp/yohaku
+            rm -rf $workdir/${{ env.STANDALONE_SUBPATH }}/.env
+            ln -s $HOME/yohaku/.env $workdir/${{ env.STANDALONE_SUBPATH }}/.env
             export NEXT_SHARP_PATH=$(npm root -g)/sharp
-            # copy workdir ecosystem.config.js to basedir if not exists
-            if [ ! -f $basedir/ecosystem.config.js ]; then
-              cp $workdir/standalone/ecosystem.config.js $basedir/ecosystem.config.js
-            fi
-            # https://github.com/Unitech/pm2/issues/3054
-            # symlink workdir node entry file to basedir
-            ln -sf $workdir/standalone/server.js $basedir/server.js
-            mkdir -p $workdir/standalone/.next
-            rm -rf $workdir/standalone/.next/cache
-            ln -sf $basedir/.cache $workdir/standalone/.next/cache
+            ln -sf $workdir/${{ env.STANDALONE_SUBPATH }}/server.js $basedir/server.js
+            mkdir -p $workdir/${{ env.STANDALONE_SUBPATH }}/.next
+            rm -rf $workdir/${{ env.STANDALONE_SUBPATH }}/.next/cache
+            ln -sf $basedir/.cache $workdir/${{ env.STANDALONE_SUBPATH }}/.next/cache
             cd $basedir
-            pm2 reload ecosystem.config.js --update-env
+            if pm2 describe Yohaku >/dev/null 2>&1; then
+              pm2 reload ecosystem.config.js --update-env
+            else
+              pm2 start ecosystem.config.js --update-env
+            fi
             rm $workdir/release.zip
             pm2 save
             echo "Deployed successfully"
-
-      - name: Prepare standalone PM2 config
-        run: cp pm2/ecosystem.config.js ecosystem.config.js
 
       - name: copy file via ssh password
         continue-on-error: true
@@ -245,11 +254,10 @@ jobs:
           target: '/tmp/yohaku'
 
       - name: Exec deploy script with SSH
-        continue-on-error: true
         uses: appleboy/ssh-action@master
 
         with:
-          command_timeout: 5m
+          command_timeout: 15m
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.KEY }}

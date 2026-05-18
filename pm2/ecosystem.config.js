@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'Yohaku',
-      script: './server.js',
+      script: 'node',
+      args: '--env-file=.env server.js',
       cwd: __dirname,
       exec_mode: 'fork',
       instances: 1,
