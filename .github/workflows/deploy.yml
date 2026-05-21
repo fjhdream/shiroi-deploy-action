@@ -10,6 +10,8 @@ on:
   repository_dispatch:
     types: [trigger-workflow]
 
+  workflow_dispatch:
+
 permissions: write-all
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +27,7 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.head_commit.message != 'Update hash file' }}
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'Update hash file' }}
 
     outputs:
       hash_content: ${{ steps.read_hash.outputs.hash_content }}
