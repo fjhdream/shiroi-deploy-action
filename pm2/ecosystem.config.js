@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'Yohaku',
-      script: 'node',
+      script: '/opt/carota-node/bin/node',
+      interpreter: 'none',
       args: '--env-file=.env server.js',
       cwd: __dirname,
       exec_mode: 'fork',

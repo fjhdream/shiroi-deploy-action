@@ -81,7 +81,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [lts/*]
+        node-version: [26]
     outputs:
       sha_short: ${{ steps.store.outputs.sha_short }}
       branch: ${{ steps.store.outputs.branch }}
@@ -206,7 +206,6 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             set -e
-            source $HOME/.bashrc
             basedir=$HOME/yohaku
             workdir=$basedir/${{ github.run_number }}
             mkdir -p $workdir
@@ -267,11 +266,6 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             set -e
-            source $HOME/.bashrc
-
-             # 加载 nvm 环境
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             export PATH=$PATH:/usr/local/bin
 
             basedir=$HOME/yohaku
