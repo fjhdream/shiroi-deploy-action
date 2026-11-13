@@ -1,0 +1,73 @@
+name: Carota encrypted upgrade 20261113
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: innei-dev/Yohaku
+          ref: 975d5931c9628da5de1384a0a2214cae0e7a92f8
+          token: ${{ secrets.GH_PAT }}
+          persist-credentials: false
+          fetch-depth: 0
+          lfs: true
+          submodules: recursive
+      - name: Restore source branch metadata
+        run: |
+          git switch -c carota-upgrade-20261113
+          git config branch.carota-upgrade-20261113.remote origin
+      - name: Checkout LFS objects
+        run: git lfs checkout
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build project
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_CLIENT_API_URL: ${{ secrets.NEXT_PUBLIC_CLIENT_API_URL }}
+          NEXT_PUBLIC_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_GATEWAY_URL }}
+        run: |
+          pnpm --filter @yohaku/web build:ci
+          cd apps/web/.next
+          rm -rf cache
+          cp -r ../public ./standalone/public
+          mv ./static ./standalone/apps/web/.next/static
+          cd standalone
+          echo ';process.title = "Yohaku (NextJS)"' >> server.js
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p assets
+          (cd apps/web/.next && zip --symlinks -qr "$GITHUB_WORKSPACE/assets/release.zip" ./* -x "dev/*" -x "cache/*")
+      - name: Encrypt transfer package
+        env:
+          CAROTA_RELEASE_TRANSFER_KEY: ${{ secrets.CAROTA_RELEASE_TRANSFER_KEY }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const assert = require('node:assert/strict');
+          const key = Buffer.from(process.env.CAROTA_RELEASE_TRANSFER_KEY, 'hex');
+          assert.equal(key.length, 32);
+          const data = fs.readFileSync('assets/release.zip');
+          assert.ok(data.length > 1000000);
+          const iv = crypto.randomBytes(12);
+          const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+          const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+          fs.writeFileSync('carota-release.enc', Buffer.concat([Buffer.from('CAROTA1'), iv, cipher.getAuthTag(), encrypted]));
+          console.log(JSON.stringify({bytes: data.length, sha256: crypto.createHash('sha256').update(data).digest('hex')}));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carota-release-20261113-encrypted
+          path: carota-release.enc
+          compression-level: 0
+          retention-days: 1
